@@ -26,6 +26,12 @@
   boot.kernelParams = [ "zswap.enabled=0" "nvidia_drm.fbdev=1" ];
   boot.initrd.kernelModules = [ "nvidia" "nvidia_modeset" "nvidia_uvm" "nvidia_drm" ];
 
+  # btrfs mount options, merged with the generated `subvol=` options in hardware-configuration.nix
+  fileSystems."/".options = [ "compress=zstd:3" ];
+  fileSystems."/home".options = [ "compress=zstd:3" ];
+  fileSystems."/nix".options = [ "compress=zstd:3" "noatime" ];
+  fileSystems."/var/log".options = [ "compress=zstd:3" ];
+
   # zram-generator: zram0 with zstd, no disk swap
   zramSwap = {
     enable = true;
