@@ -155,7 +155,7 @@
     openFirewall = false; # 60000-61000/udp reachable only via tailscale0
   };
   programs.dconf.enable = true;
-  programs.nix-ld.enable = true; # lets Mason-downloaded LSP binaries (clangd, ltex, ...) run
+  programs.nix-ld.enable = true; # lets downloaded, non-Nix Linux binaries run
 
   # neovim + ex-vi-compat (vi/vim -> nvim)
   programs.neovim = {

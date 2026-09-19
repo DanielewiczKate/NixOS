@@ -377,4 +377,5 @@ Behaviour changes from Arch:
 - `pipewire-pulse` is enabled (it was not installed on Arch).
 - `~/.config/hypr` and `~/.config/nvim` come from the `dotfiles/` submodules (see "Dotfiles").
   Other dotfiles (`kitty`, `waybar`, …) are not managed here; copy them over as-is.
-- `programs.nix-ld` is on so Mason's downloaded LSP servers (clangd, ltex, …) run on NixOS.
+- nvim's LSP servers come from Nix (`modules/packages.nix`); the nvim config only lets Mason
+  install them on non-NixOS machines. `programs.nix-ld` is on for other downloaded binaries.

@@ -70,5 +70,12 @@
     iverilog
     verilator
     gtkwave
+
+    # LSP servers for nvim (Mason installs them on non-NixOS machines)
+    pyright
+    clang-tools # clangd
+    ltex-ls
+    markdown-oxide
+    verible # verible-verilog-ls
   ];
 }
