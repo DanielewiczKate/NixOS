@@ -54,6 +54,7 @@
     playerctl # used by hyprland.lua media keys
     grim # screenshots
     slurp # region select for grim
+    wl-clipboard # wl-copy, used by hypr/scripts/snip to put screenshots on the clipboard
     libnotify
     kdePackages.polkit-kde-agent-1
     kdePackages.dolphin
