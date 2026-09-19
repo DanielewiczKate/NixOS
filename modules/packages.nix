@@ -42,6 +42,7 @@
     libpq # postgresql-libs
     docker-compose
     ncurses5 # ncurses5-compat-libs
+    claude-code
 
     # Desktop (Hyprland session)
     hypridle
@@ -57,6 +58,7 @@
     kdePackages.polkit-kde-agent-1
     kdePackages.dolphin
     egl-wayland
+    adwaita-icon-theme # standard arrow cursor (XCURSOR_THEME=Adwaita in hyprland.lua)
 
     # Apps
     vscodium # Arch `code` is the open-source "Code - OSS" build
