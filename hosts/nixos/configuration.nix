@@ -90,6 +90,14 @@
   };
   security.sudo.enable = true;
 
+  # Dotfiles are git submodules of this repo (dotfiles/*), symlinked into ~/.config at boot
+  # and on every rebuild. `L` never replaces an existing ~/.config/hypr or ~/.config/nvim.
+  systemd.tmpfiles.rules = [
+    "d /home/kate/.config 0755 kate users -"
+    "L /home/kate/.config/hypr - - - - /home/kate/src/repos/NixOS/dotfiles/hypr"
+    "L /home/kate/.config/nvim - - - - /home/kate/src/repos/NixOS/dotfiles/nvim"
+  ];
+
   environment.sessionVariables = {
     EDITOR = "nvim";
     VISUAL = "nvim";
@@ -147,6 +155,7 @@
     openFirewall = false; # 60000-61000/udp reachable only via tailscale0
   };
   programs.dconf.enable = true;
+  programs.nix-ld.enable = true; # lets Mason-downloaded LSP binaries (clangd, ltex, ...) run
 
   # neovim + ex-vi-compat (vi/vim -> nvim)
   programs.neovim = {

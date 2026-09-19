@@ -8,6 +8,8 @@ flake.nix                               # nixosConfigurations.nixos
 hosts/nixos/configuration.nix           # system: boot, nvidia, services, desktop, users
 hosts/nixos/hardware-configuration.nix
 modules/packages.nix                    # environment.systemPackages
+dotfiles/hypr                           # submodule: DanielewiczKate/HyprConf    -> ~/.config/hypr
+dotfiles/nvim                           # submodule: DanielewiczKate/nvim-config -> ~/.config/nvim
 UNAVAILABLE.md                          # Arch packages that could not be carried over
 ```
 
@@ -30,9 +32,8 @@ Every block below is meant to be copied and pasted as-is. Run them in order.
   sudo dd if=latest-nixos-minimal-x86_64-linux.iso of=/dev/sdX bs=4M status=progress oflag=sync
   ```
 
-- **Shut down and unplug the SATA cables of both hard disks** (`sda` Arch, `sdb` "New Volume").
-  Then the installer can only see the NVMe, so there is nothing else to erase by mistake.
-  Plug them back in after the install.
+- The hard disks (`sda` Arch, `sdb` "New Volume") stay connected. Nothing below touches them:
+  every command that erases something uses `$DISK`, which step 3 locks to the NVMe.
 - In the BIOS (**F2** or **Del** at power-on), **disable Secure Boot** (the NixOS ISO isn't signed for it).
 
 ### 1. Boot the installer
@@ -71,26 +72,30 @@ ping -c 3 nixos.org
 lsblk -o NAME,SIZE,MODEL
 ```
 
-You should see `nvme0n1  465.8G  WDC WDS500G2B0C-00PXH0` (plus the USB stick).
-If the hard disks show up, stop and unplug them. Then:
+You should see the NVMe as `nvme0n1  465.8G  WDC WDS500G2B0C-00PXH0`, plus the two hard
+disks (ST1000LM024 and WDC WD20EARS) and the USB stick. Only the NVMe gets erased. Set it:
 
 ```sh
 DISK=/dev/nvme0n1
-lsblk -dno MODEL,SIZE $DISK    # must print WDC WDS500G2B0C-00PXH0  465.8G
+[ "$(lsblk -dno MODEL $DISK)" = "WDC WDS500G2B0C-00PXH0" ] && echo "OK: $DISK is the NVMe" || { echo "WRONG DISK - STOP"; unset DISK; }
 ```
 
-`DISK` only lives in this shell. If you close it or reboot, run `DISK=/dev/nvme0n1` again.
+It must print `OK: /dev/nvme0n1 is the NVMe`. If it prints `WRONG DISK - STOP`, don't continue:
+the erase commands in step 4 then refuse to run.
+
+`DISK` only lives in this shell. If you close it or reboot, run both lines above again.
 
 ### 4. Partition and format (erases the NVMe)
 
-1 GiB boot partition (ESP) + the rest as btrfs:
+1 GiB boot partition (ESP) + the rest as btrfs. `${DISK:?}` stops with an error if `DISK`
+isn't set, so these can never fall back to another disk:
 
 ```sh
-wipefs -a $DISK
-parted -s $DISK -- mklabel gpt
-parted -s $DISK -- mkpart ESP fat32 1MiB 1GiB
-parted -s $DISK -- set 1 esp on
-parted -s $DISK -- mkpart nixos btrfs 1GiB 100%
+wipefs -a ${DISK:?}
+parted -s ${DISK:?} -- mklabel gpt
+parted -s ${DISK:?} -- mkpart ESP fat32 1MiB 1GiB
+parted -s ${DISK:?} -- set 1 esp on
+parted -s ${DISK:?} -- mkpart nixos btrfs 1GiB 100%
 udevadm settle
 
 mkfs.fat -F32 -n BOOT ${DISK}p1
@@ -138,7 +143,7 @@ That opens a shell with `git`. Inside it:
 
 ```sh
 mkdir -p /mnt/home/kate/src/repos
-git clone https://github.com/DanielewiczKate/NixOS.git /mnt/home/kate/src/repos/NixOS
+git clone --recurse-submodules https://github.com/DanielewiczKate/NixOS.git /mnt/home/kate/src/repos/NixOS
 cd /mnt/home/kate/src/repos/NixOS
 nixos-generate-config --root /mnt --show-hardware-config > hosts/nixos/hardware-configuration.nix
 ```
@@ -181,7 +186,7 @@ reboot
 ```
 
 Pull the USB stick out when the screen goes black. It boots straight into NixOS.
-Shut down and plug the hard disks back in whenever you like.
+If it boots Arch instead, press **F11** at power-on and pick the NVMe (WDC WDS500G2B0C) entry.
 
 ## After the first boot
 
@@ -206,7 +211,9 @@ machine when you no longer need it, and consider "Disable key expiry" on `nixos`
 
 ### Copy your files from Arch
 
-With the Arch hard disk plugged in (it's `sda2`; check with `lsblk -f`), mount it **read-only**:
+The Arch disk is usually `sda2`, but disk letters can change between boots. Check that
+`lsblk -o NAME,SIZE,MODEL,FSTYPE` shows `sda` as the 931.5G ST1000LM024 with a btrfs `sda2`.
+Mount it **read-only**:
 
 ```sh
 sudo mkdir -p /mnt/arch
@@ -218,13 +225,14 @@ Copy what you need, for example:
 
 ```sh
 mkdir -p ~/.config
-cp -a /mnt/arch/kate/.config/{hypr,nvim,kitty,foot,waybar,yazi} ~/.config/
+cp -a /mnt/arch/kate/.config/{kitty,foot,waybar,yazi} ~/.config/
 cp -a /mnt/arch/kate/.ssh ~/
 cp -a /mnt/arch/kate/.gitconfig ~/
 sudo chown -R kate:users ~
 ```
 
 `cp` prints an error for any folder in the list that doesn't exist. That's harmless.
+Don't copy `hypr` or `nvim`: they come from this repo (see "Dotfiles" below).
 When done:
 
 ```sh
@@ -233,6 +241,17 @@ sudo umount /mnt/arch
 
 Don't add the Arch disk to the config as a `fileSystems` entry. NixOS would then wait for
 it at every boot and hang once you format it.
+
+### Put the dotfile submodules on `main`
+
+A fresh clone leaves submodules on a detached commit. Switch them to `main` once, so you can
+commit from them:
+
+```sh
+cd ~/src/repos/NixOS
+git submodule foreach git switch main
+ls -l ~/.config/hypr ~/.config/nvim     # both should be symlinks into dotfiles/
+```
 
 ### Commit the new hardware file
 
@@ -250,6 +269,42 @@ git push
 cd ~/src/repos/NixOS
 nix flake update                                   # optional: newer packages
 nixos-rebuild switch --sudo --flake .#nixos        # asks for your password
+```
+
+## Dotfiles
+
+`~/.config/hypr` and `~/.config/nvim` are symlinks to `dotfiles/hypr` and `dotfiles/nvim` in
+this repo. NixOS creates them (`systemd.tmpfiles.rules` in `configuration.nix`) and never
+overwrites a real folder already at that path. If one is missing, check that nothing is in the way
+and run `nixos-rebuild switch --sudo --flake .#nixos` again.
+
+Each submodule is its own git repo with its own GitHub remote. This repo only records which
+commit of each one to use.
+
+**After changing your hypr or nvim config:**
+
+```sh
+cd ~/.config/hypr                 # or ~/.config/nvim
+git add -A && git commit -m "..." && git push
+
+cd ~/src/repos/NixOS              # record the new commit here too
+git add dotfiles/hypr             # or dotfiles/nvim
+git commit -m "bump hypr" && git push
+```
+
+**Getting everything up to date** (e.g. after pushing from another machine):
+
+```sh
+cd ~/src/repos/NixOS
+git pull
+git submodule foreach git pull
+```
+
+**Cloning on another machine:** always use `--recurse-submodules`, then switch them to `main`:
+
+```sh
+git clone --recurse-submodules https://github.com/DanielewiczKate/NixOS.git ~/src/repos/NixOS
+cd ~/src/repos/NixOS && git submodule foreach git switch main
 ```
 
 ## Booting Arch while both are installed
@@ -270,7 +325,8 @@ Once NixOS has everything you need:
    And every UUID in that file should appear under `nvme0n1` in `lsblk -f`.
 2. Make sure everything is copied: `~` (dotfiles, `~/.ssh`, projects). Also copy
    `/var/lib/tailscale/tailscaled.state` if you want to keep the old Tailscale machine.
-3. Test: shut down, unplug the Arch disk, boot NixOS a couple of times. If all is well, plug it back in.
+3. Test: in the BIOS, move the Arch disk's boot entry to the bottom (or disable it) and boot
+   NixOS a couple of times. If everything works, formatting the Arch disk won't break it.
 4. Format it (check the name first, it should be the 931.5G ST1000LM024):
 
    ```sh
@@ -319,4 +375,6 @@ For fish, run `alias --save nx 'mosh kate@nixos -- zellij attach -c main'` inste
 Behaviour changes from Arch:
 - `docker` and `tailscaled` were running but not enabled on Arch; they start at boot here.
 - `pipewire-pulse` is enabled (it was not installed on Arch).
-- Dotfiles (`~/.config/hypr`, `nvim`, `kitty`, …) are not managed here; copy them over as-is.
+- `~/.config/hypr` and `~/.config/nvim` come from the `dotfiles/` submodules (see "Dotfiles").
+  Other dotfiles (`kitty`, `waybar`, …) are not managed here; copy them over as-is.
+- `programs.nix-ld` is on so Mason's downloaded LSP servers (clangd, ltex, …) run on NixOS.

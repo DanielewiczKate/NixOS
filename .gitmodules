@@ -1,0 +1,8 @@
+[submodule "dotfiles/hypr"]
+	path = dotfiles/hypr
+	url = https://github.com/DanielewiczKate/HyprConf.git
+	branch = main
+[submodule "dotfiles/nvim"]
+	path = dotfiles/nvim
+	url = https://github.com/DanielewiczKate/nvim-config.git
+	branch = main
