@@ -19,11 +19,15 @@
     which
     less
     unzip
+    zip
     inetutils
     strace
     efibootmgr
     btrfs-progs
     evtest
+    valgrind
+    man-pages # manpages-dev: syscalls (section 2)
+    man-pages-posix # manpages-dev: POSIX library calls (section 3p)
 
     # CLI
     bat
@@ -50,6 +54,7 @@
     waybar
     kitty
     foot
+    xterm
     brightnessctl
     playerctl # used by hyprland.lua media keys
     grim # screenshots
@@ -73,6 +78,9 @@
     iverilog
     verilator
     gtkwave
+
+    # SDR
+    gnuradio
 
     # LSP servers for nvim (Mason installs them on non-NixOS machines)
     pyright

@@ -103,6 +103,10 @@
     VISUAL = "nvim";
   };
 
+  environment.shellAliases = {
+    rebuild = "nixos-rebuild switch --sudo --flake /home/kate/src/repos/NixOS#nixos";
+  };
+
   # ---------------------------------------------------------------- Services
   services.openssh = {
     enable = true; # sshd (defaults match Arch: keys + password via PAM)
