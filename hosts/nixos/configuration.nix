@@ -58,6 +58,12 @@
   # bluez + bluez-utils
   hardware.bluetooth.enable = true;
 
+  # RTL-SDR (RTL-SDR Blog V3, 0bda:2838). Installs the rtl-sdr-blog fork + its udev
+  # rules, and blacklists the DVB-T TV drivers (dvb_usb_rtl28xxu, rtl2832, e4000) that
+  # otherwise grab the dongle and keep librtlsdr from claiming it.
+  # The udev rules are MODE=0660 GROUP=plugdev, so kate is in plugdev below.
+  hardware.rtl-sdr.enable = true;
+
   # ---------------------------------------------------------------- Networking
   networking.hostName = "nixos"; # also the Tailscale machine name (ssh kate@nixos via MagicDNS)
   networking.networkmanager.enable = true; # NetworkManager (+ wpa_supplicant backend)
@@ -85,7 +91,7 @@
   users.users.kate = {
     isNormalUser = true;
     description = "Kate Danielewicz";
-    extraGroups = [ "wheel" "docker" "networkmanager" "video" "input" ];
+    extraGroups = [ "wheel" "docker" "networkmanager" "video" "input" "plugdev" ]; # plugdev: RTL-SDR udev rules
     shell = pkgs.bashInteractive;
   };
   security.sudo.enable = true;
@@ -160,6 +166,17 @@
   };
   programs.dconf.enable = true;
   programs.nix-ld.enable = true; # lets downloaded, non-Nix Linux binaries run
+
+  # Steam: enables 32-bit graphics libs, opens remote-play/source-engine firewall ports, gamescope + gamemode
+  # extraCompatPackages adds Proton-GE (community build) as a Steam Play option; vanilla Proton ships with Steam itself.
+  programs.steam = {
+    enable = true;
+    remotePlay.openFirewall = true;
+    dedicatedServer.openFirewall = false;
+    gamescopeSession.enable = true;
+    extraCompatPackages = [ pkgs.proton-ge-bin ];
+  };
+  programs.gamemode.enable = true;
 
   # neovim + ex-vi-compat (vi/vim -> nvim)
   programs.neovim = {

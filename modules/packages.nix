@@ -79,8 +79,17 @@
     verilator
     gtkwave
 
-    # SDR
-    gnuradio
+    # SDR (RTL-SDR Blog V3; rtl-sdr-blog itself comes from hardware.rtl-sdr.enable)
+    # gnuradio needs gr-osmosdr to see the dongle -- plain gnuradio has no RTL source block.
+    (gnuradio.override { extraPackages = [ gnuradioPackages.osmosdr ]; })
+    gqrx          # GNU Radio based waterfall receiver
+    sdrpp         # SDR++, lighter-weight alternative to gqrx
+    rtl_433       # 433/868/915 MHz ISM sensors (weather stations, TPMS, doorbells)
+    multimon-ng   # POCSAG/FLEX pager + AFSK/APRS decoding, fed from rtl_fm
+    dump1090-fa   # 1090 MHz ADS-B aircraft, with a web map on localhost:8080 when run with --net
+    inspectrum    # offline analysis of IQ captures from rtl_sdr
+    sdrangel      # all-in-one: tune + demod + live Morse/RTTY/FT8/etc decode, no audio routing needed
+    gpredict      # satellite pass prediction/tracking (az/el vs time, live TLE updates)
 
     # LSP servers for nvim (Mason installs them on non-NixOS machines)
     pyright
